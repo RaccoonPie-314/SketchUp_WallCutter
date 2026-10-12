@@ -143,9 +143,19 @@ module WallCutter
     end
 
     def onSetCursor(view, _flags, _x, _y)
+      @cursor_probe ||= begin
+        File.write(File.join(Dir.tmpdir, 'wallcutter_cursor_probe.txt'),
+                   "onSetCursor fired #{Time.now}\n") rescue nil
+        true
+      end
+      try_custom_cursor(view)
+    end
+
+    # Probe marker removes all doubt about whether onSetCursor fires at all.
+    def try_custom_cursor(view)
       view.set_cursor(CURSOR)
-    rescue StandardError
-      @cursor_failed ||= (puts 'WallCutter: custom cursor unavailable' ; true)
+    rescue StandardError => e
+      @cursor_failed ||= (puts "WallCutter: custom cursor unavailable (#{e.class})" ; true)
     end
 
     def initialize
@@ -159,6 +169,7 @@ module WallCutter
 
     def activate
       Sketchup.status_text = 'WallCutter: click a wall face, drag edges to resize, Enter to cut'
+      try_custom_cursor(Sketchup.active_model.active_view)
       show_dialog
     end
 
